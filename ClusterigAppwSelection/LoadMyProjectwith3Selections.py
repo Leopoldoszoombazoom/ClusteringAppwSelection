@@ -14,8 +14,13 @@ from mpl_toolkits import mplot3d
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os
+import sys
 import openpyxl
 import xlrd
+
+# φάκελος με τα αρχεία δεδομένων και το εικονίδιο
+# (όταν τρέχει ως .exe του PyInstaller, τα αρχεία βρίσκονται στο sys._MEIPASS)
+BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
 
 
@@ -24,7 +29,7 @@ class ClusteringApp():
     def __init__(self, master):
         self.master = master
         self.master.title("Εφαρμογή συσταδοποίησης με Kmeans")
-        self.master.iconbitmap('python.ico')
+        self.master.iconbitmap(os.path.join(BASE_DIR, 'python.ico'))
         self.master.geometry("1000x1400")
         self.data = None
         
@@ -116,9 +121,9 @@ class ClusteringApp():
         self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
         
     
-    def load_data(self):
+    def load_data(self, event=None):
         filename = self.filename_combo.get()# επιλογή συνόλου δεδομένων απο το filename_combo
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = BASE_DIR
         
         print(f'base_dir:{base_dir}')   
         # base_dir: /Users/leopoldoszoombazoom/Documents/myProject2
