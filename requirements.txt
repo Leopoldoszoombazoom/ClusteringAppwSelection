@@ -5,3 +5,5 @@ scikit-learn
 seaborn
 openpyxl
 xlrd
+streamlit
+plotly
