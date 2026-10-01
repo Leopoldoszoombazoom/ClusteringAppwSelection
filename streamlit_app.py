@@ -3,6 +3,7 @@
 Τοπικά:   streamlit run streamlit_app.py
 Online:   Streamlit Community Cloud (share.streamlit.io) → αυτό το repo → streamlit_app.py
 """
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -10,9 +11,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sklearn.cluster import KMeans
 
 DATA_DIR = Path(__file__).parent / "ClusterigAppwSelection"
+sys.path.insert(0, str(DATA_DIR))
+from kmeans_np import KMeans  # noqa: E402  (NumPy μόνο, χωρίς sklearn/SciPy)
 
 st.set_page_config(page_title="Συσταδοποίηση KMeans", page_icon="🔵", layout="wide")
 

@@ -4,9 +4,8 @@ import tkinter as tk
 from tkinter import filedialog
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
+from kmeans_np import KMeans  # αντί για sklearn: το SciPy που χρειάζεται το μπλοκάρει το Smart App Control
 #from matplotlib.backend_bases import key_press_handler
 from tkinter import messagebox
 from tkinter import simpledialog
