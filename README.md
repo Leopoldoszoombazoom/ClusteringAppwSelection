@@ -3,11 +3,11 @@
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://leopoldos-kmeans.streamlit.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Interactive k-means clustering on 10 real datasets, with a rotatable 3D plot of the clusters and their centroids.
+Interactive k-means clustering on 10 real datasets, with a 3D plot of the clusters and their centroids (adjustable viewing angle).
 
 **▶ Try it online, nothing to install: https://leopoldos-kmeans.streamlit.app**
 
-![Screenshot of the web app](docs/screenshot.png)
+![Screenshot of the web app](docs/screenshot-matplotlib.png)
 
 ## Features
 
