@@ -3,17 +3,17 @@
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://leopoldos-kmeans.streamlit.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Interactive k-means clustering on 10 real datasets, with a 3D plot of the clusters and their centroids (adjustable viewing angle).
+Interactive k-means clustering on 10 real datasets, with a rotatable 3D plot of the clusters and their centroids.
 
 **▶ Try it online, nothing to install: https://leopoldos-kmeans.streamlit.app**
 
-![Screenshot of the web app](docs/screenshot-matplotlib.png)
+![Screenshot of the web app](docs/screenshot-app.png)
 
 ## Features
 
 - Pick one of **10 datasets** (see below)
 - Choose the number of clusters **k** (1–10) and any **3 numeric features** as the x / y / z axes
-- **3D chart** (Matplotlib, same look as the desktop app): change the viewing angle with the elevation/azimuth sliders
+- **Interactive 3D chart** (Plotly, styled like the Matplotlib desktop app): drag to rotate, scroll to zoom, hover a point to see its values, click the legend to hide a cluster
 - Cluster **centroids**, cluster sizes and inertia (SSE)
 - Data table with the assigned `cluster` column and **CSV download**
 - Colour palettes, point size, and a random seed for reproducible results
@@ -40,7 +40,7 @@ The app comes in two versions that share the same datasets:
 
 | Version | File | Interface |
 |---|---|---|
-| **Web** | `streamlit_app.py` | Streamlit + Matplotlib, runs in the browser |
+| **Web** | `streamlit_app.py` | Streamlit + Plotly (Matplotlib look), runs in the browser |
 | **Desktop** | `ClusterigAppwSelection/LoadMyProjectwith3Selections.py` | Tkinter + Matplotlib window |
 
 ```bash

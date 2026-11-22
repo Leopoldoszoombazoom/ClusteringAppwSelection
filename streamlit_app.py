@@ -1,4 +1,4 @@
-"""Εφαρμογή συσταδοποίησης με KMeans — web έκδοση (Streamlit + Matplotlib).
+"""Εφαρμογή συσταδοποίησης με KMeans — web έκδοση (Streamlit + Plotly με εμφάνιση Matplotlib).
 
 Τοπικά:   streamlit run streamlit_app.py
 Online:   Streamlit Community Cloud (share.streamlit.io) → αυτό το repo → streamlit_app.py
@@ -8,11 +8,13 @@ from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")  # χωρίς παράθυρο: το Streamlit δείχνει την εικόνα
-import matplotlib.pyplot as plt
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # μόνο για τα colormaps (tab10, Set1…)
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
+from matplotlib.colors import to_hex
 
 DATA_DIR = Path(__file__).parent / "ClusterigAppwSelection"
 sys.path.insert(0, str(DATA_DIR))
@@ -114,11 +116,7 @@ features = (f1, f2, f3)
 
 palette = st.sidebar.selectbox("Χρώματα (colormap)",
                                ["tab10", "Set1", "Dark2", "Set2", "Paired", "viridis", "plasma"])
-point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 40, 10)
-
-st.sidebar.subheader("Γωνία θέασης")
-elev = st.sidebar.slider("Ύψος (elevation)", -90, 90, 25)
-azim = st.sidebar.slider("Περιστροφή (azimuth)", -180, 180, -60)
+point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 10, 4)
 seed = st.sidebar.number_input("Random seed", value=0, step=1,
                                help="Ίδιο seed → ίδιο αποτέλεσμα σε κάθε εκτέλεση")
 
@@ -136,29 +134,53 @@ c1.metric("Συστάδες", k)
 c2.metric("Inertia (SSE)", f"{inertia:,.2f}")
 c3.metric("Μέγεθος συστάδων", " / ".join(str(s) for s in sizes))
 
-# ___________________ 3D γράφημα (Matplotlib, όπως η desktop εφαρμογή) ___________________
+# ___________________ 3D γράφημα: Plotly (γυρίζει με το ποντίκι) με εμφάνιση Matplotlib ___________________
 cmap = plt.get_cmap(palette)
 # ποιοτικά colormaps (tab10, Set1…): ένα χρώμα ανά συστάδα · συνεχή (viridis…): ισαπέχοντα χρώματα
-colors = [cmap(i % cmap.N) if cmap.N <= 20 else cmap(i / max(k - 1, 1)) for i in range(k)]
+colors = [to_hex(cmap(i % cmap.N) if cmap.N <= 20 else cmap(i / max(k - 1, 1))) for i in range(k)]
+hover_extra = [c for c in data.columns if c not in features][:4]   # π.χ. η πραγματική κλάση
 
-fig = plt.figure(figsize=(9, 7))
-ax = fig.add_subplot(projection="3d")
+fig = go.Figure()
 for i in range(k):
     pts = result[result["cluster"] == i]
-    ax.scatter(pts[f1], pts[f2], pts[f3], color=colors[i], s=point_size, alpha=0.7,
-               depthshade=False, label=f"Συστάδα {i + 1} ({sizes[i]})")
-ax.scatter(centers[:, 0], centers[:, 1], centers[:, 2], c="black", marker="*", s=200,
-           edgecolors="white", linewidths=0.8, depthshade=False, label="Κέντρα")
-ax.set_xlabel(f1)
-ax.set_ylabel(f2)
-ax.set_zlabel(f3)
-ax.set_title(f"Αριθμός συστάδων: {k}")
-ax.view_init(elev=elev, azim=azim)
-ax.legend(loc="upper left", fontsize=8, markerscale=1.5)
-fig.tight_layout()
-st.pyplot(fig, use_container_width=True)
-plt.close(fig)
-st.caption("Αλλάξτε τη γωνία θέασης από τα sliders στην πλευρική στήλη.")
+    extra = "".join(f"<br>{c}=%{{customdata[{j}]}}" for j, c in enumerate(hover_extra))
+    fig.add_trace(go.Scatter3d(
+        x=pts[f1], y=pts[f2], z=pts[f3], mode="markers",
+        name=f"Συστάδα {i + 1} ({sizes[i]})",
+        marker=dict(size=point_size, color=colors[i], opacity=0.75, line=dict(width=0)),
+        customdata=pts[hover_extra].to_numpy() if hover_extra else None,
+        hovertemplate=f"Συστάδα {i + 1}<br>{f1}=%{{x}}<br>{f2}=%{{y}}<br>{f3}=%{{z}}{extra}<extra></extra>",
+    ))
+# κέντρα: μαύρα αστέρια όπως στην desktop εφαρμογή (το Scatter3d δεν έχει σύμβολο αστεριού → κείμενο ★)
+fig.add_trace(go.Scatter3d(
+    x=centers[:, 0], y=centers[:, 1], z=centers[:, 2], mode="text", text=["★"] * k,
+    textfont=dict(size=26, color="black"), legendgroup="κέντρα", showlegend=False,
+    hovertemplate=f"κέντρο<br>{f1}=%{{x:.3f}}<br>{f2}=%{{y:.3f}}<br>{f3}=%{{z:.3f}}<extra></extra>",
+))
+# καταχώρηση υπομνήματος για τα κέντρα (αλλιώς το Plotly δείχνει «Aa» για ίχνος κειμένου)
+fig.add_trace(go.Scatter3d(x=[None], y=[None], z=[None], mode="markers", name="★ Κέντρα",
+                           legendgroup="κέντρα", marker=dict(size=1, opacity=0)))
+
+MPL_FONT = "DejaVu Sans, Verdana, sans-serif"
+axis = dict(backgroundcolor="#f2f2f2", showbackground=True, gridcolor="#d0d0d0",
+            zeroline=False, showspikes=False, linecolor="black", ticks="outside",
+            tickfont=dict(size=11, color="black"))
+fig.update_layout(
+    height=600, paper_bgcolor="white", font=dict(family=MPL_FONT, color="black"),
+    title=dict(text=f"Αριθμός συστάδων: {k}", x=0.5, xanchor="center", font=dict(size=16)),
+    margin=dict(l=0, r=0, t=45, b=0),
+    legend=dict(x=0.01, y=0.98, bgcolor="rgba(255,255,255,0.85)", bordercolor="#cccccc",
+                borderwidth=1, itemsizing="constant", font=dict(size=12)),
+    scene=dict(
+        xaxis=dict(title=f1, **axis), yaxis=dict(title=f2, **axis), zaxis=dict(title=f3, **axis),
+        aspectmode="cube",
+        camera=dict(eye=dict(x=1.05, y=-1.8, z=0.95)),  # περίπου η προεπιλεγμένη γωνία του Matplotlib
+    ),
+)
+# τα 2/3 του πλάτους σε υπολογιστή (όχι τεράστιο)· σε κινητό οι στήλες στοιβάζονται → όλο το πλάτος
+chart_col, _ = st.columns([2, 1])
+chart_col.plotly_chart(fig, theme=None, config={"displayModeBar": False, "displaylogo": False})
+chart_col.caption("🖱️ Σύρετε για περιστροφή · ροδέλα για zoom · κλικ στο υπόμνημα για απόκρυψη συστάδας")
 
 # ___________________ πίνακας δεδομένων ___________________
 with st.expander("Δεδομένα με τη στήλη cluster", expanded=False):
