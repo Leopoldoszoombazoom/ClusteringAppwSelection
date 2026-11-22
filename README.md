@@ -13,7 +13,7 @@ Interactive k-means clustering on 10 real datasets, with a rotatable 3D plot of 
 
 - Pick one of **10 datasets** (see below)
 - Choose the number of clusters **k** (1–10) and any **3 numeric features** as the x / y / z axes
-- **Interactive 3D chart** (Plotly): drag to rotate, scroll to zoom, hover a point to see its values and real class, click the legend to hide a cluster
+- **3D chart** (Matplotlib, same look as the desktop app): change the viewing angle with the elevation/azimuth sliders
 - Cluster **centroids**, cluster sizes and inertia (SSE)
 - Data table with the assigned `cluster` column and **CSV download**
 - Colour palettes, point size, and a random seed for reproducible results
@@ -40,7 +40,7 @@ The app comes in two versions that share the same datasets:
 
 | Version | File | Interface |
 |---|---|---|
-| **Web** | `streamlit_app.py` | Streamlit + Plotly, runs in the browser |
+| **Web** | `streamlit_app.py` | Streamlit + Matplotlib, runs in the browser |
 | **Desktop** | `ClusterigAppwSelection/LoadMyProjectwith3Selections.py` | Tkinter + Matplotlib window |
 
 ```bash
