@@ -1,11 +1,11 @@
 # K-Means Clustering App · Εφαρμογή συσταδοποίησης με KMeans
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://leopoldos-kmeans.streamlit.app)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://k-meansapp.streamlit.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Interactive k-means clustering on 10 real datasets, with a rotatable 3D plot of the clusters and their centroids.
 
-**▶ Try it online, nothing to install: https://leopoldos-kmeans.streamlit.app**
+**▶ Try it online, nothing to install: https://k-meansapp.streamlit.app**
 
 ![Screenshot of the web app](docs/screenshot-app.png)
 
