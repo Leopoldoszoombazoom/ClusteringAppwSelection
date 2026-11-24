@@ -65,7 +65,11 @@ def _breast(f):
 def _ctg(f):
     df = pd.read_excel(f, sheet_name="Data", skiprows=1, engine="xlrd")
     df = df.iloc[:, list(range(0, 21)) + [22]]
-    return df.drop("Unnamed: 9", axis=1).dropna()
+    df = df.drop("Unnamed: 9", axis=1).dropna()
+    # Το Excel έχει δύο φορές τα AC, FM, UC, DL, DS, DP: μία ως πλήθος και μία ανά δευτερόλεπτο.
+    # Το pandas ονομάζει τη δεύτερη «.1» (AC.1, FM.1…). Κρατάμε μόνο την πρώτη, γιατί η δεύτερη
+    # λέει το ίδιο πράγμα και θα έδινε διπλό βάρος σε αυτά τα χαρακτηριστικά.
+    return df.drop(columns=[c for c in df.columns if str(c).endswith(".1")])
 
 
 DATASETS = {
@@ -88,10 +92,21 @@ def load_data(name: str) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner="Συσταδοποίηση…")
-def run_kmeans(name: str, features: tuple, k: int, seed: int):
-    X = load_data(name)[list(features)].to_numpy()
-    model = KMeans(n_clusters=k, n_init=10, random_state=seed).fit(X)
-    return model.labels_, model.cluster_centers_, model.inertia_
+def run_kmeans(name: str, features: tuple, k: int, seed: int, scale: bool):
+    X = load_data(name)[list(features)].to_numpy(dtype=float)
+    if scale:
+        # StandardScaler (με NumPy): κάθε στήλη γίνεται (x - μέσος) / τυπική απόκλιση.
+        # Έτσι όλα τα χαρακτηριστικά έχουν μέσο 0 και διασπορά 1, και κανένα δεν κυριαρχεί
+        # στην απόσταση μόνο και μόνο επειδή έχει μεγάλους αριθμούς (π.χ. τα b, e του CTG).
+        mean = X.mean(axis=0)
+        std = X.std(axis=0)
+        std[std == 0] = 1.0  # σταθερή στήλη (π.χ. DR = 0 παντού): αποφεύγουμε διαίρεση με το 0
+    else:
+        mean, std = np.zeros(X.shape[1]), np.ones(X.shape[1])
+    model = KMeans(n_clusters=k, n_init=10, random_state=seed).fit((X - mean) / std)
+    # τα κέντρα επιστρέφουν στις αρχικές μονάδες, ώστε να ταιριάζουν με τους άξονες του γραφήματος
+    centers = model.cluster_centers_ * std + mean
+    return model.labels_, centers, model.inertia_
 
 
 # ___________________ πλευρική στήλη: επιλογές ___________________
@@ -119,9 +134,13 @@ palette = st.sidebar.selectbox("Χρώματα (colormap)",
 point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 10, 4)
 seed = st.sidebar.number_input("Random seed", value=0, step=1,
                                help="Ίδιο seed → ίδιο αποτέλεσμα σε κάθε εκτέλεση")
+scale = st.sidebar.checkbox("Κανονικοποίηση (StandardScaler)", value=True,
+                            help="Φέρνει όλα τα χαρακτηριστικά στην ίδια κλίμακα (μέσος 0, "
+                                 "τυπική απόκλιση 1) πριν το KMeans. Χωρίς αυτήν, τα χαρακτηριστικά "
+                                 "με μεγάλες τιμές αποφασίζουν μόνα τους τις συστάδες.")
 
 # ___________________ συσταδοποίηση ___________________
-labels, centers, inertia = run_kmeans(dataset, features, k, int(seed))
+labels, centers, inertia = run_kmeans(dataset, features, k, int(seed), scale)
 result = data.copy()
 result["cluster"] = labels
 
@@ -131,7 +150,8 @@ st.caption(f"**{dataset}** · {len(data):,} γραμμές · {len(numeric_cols)
 sizes = np.bincount(labels, minlength=k)
 c1, c2, c3 = st.columns(3)
 c1.metric("Συστάδες", k)
-c2.metric("Inertia (SSE)", f"{inertia:,.2f}")
+c2.metric("Inertia (SSE)", f"{inertia:,.2f}",
+          help="Υπολογίζεται στα κανονικοποιημένα δεδομένα" if scale else "Στις αρχικές μονάδες")
 c3.metric("Μέγεθος συστάδων", " / ".join(str(s) for s in sizes))
 
 # ___________________ 3D γράφημα: Plotly (γυρίζει με το ποντίκι) με εμφάνιση Matplotlib ___________________
@@ -184,6 +204,6 @@ chart_col.caption("🖱️ Σύρετε για περιστροφή · ροδέ�
 
 # ___________________ πίνακας δεδομένων ___________________
 with st.expander("Δεδομένα με τη στήλη cluster", expanded=False):
-    st.dataframe(result, use_container_width=True, height=350)
+    st.dataframe(result, width="stretch", height=350)
     st.download_button("⬇️ Λήψη CSV", result.to_csv(index=False).encode("utf-8"),
                        file_name=f"clusters_{Path(dataset).stem}_k{k}.csv", mime="text/csv")
