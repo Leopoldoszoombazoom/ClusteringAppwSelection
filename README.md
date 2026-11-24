@@ -1,3 +1,5 @@
+<img width="800" height="943" alt="ezgif-5aaa8fdb7fbd4e82" src="https://github.com/user-attachments/assets/91da7efe-1cd2-4a3b-bbe3-003b7d4f525d" />
+![Uploading ezgif-5aaa8fdb7fbd4e82-3.gif…]()
 # K-Means Clustering App · Εφαρμογή συσταδοποίησης με KMeans
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://k-meansapp.streamlit.app)
