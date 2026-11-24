@@ -1,7 +1,7 @@
 
 
 
-![Uploading ezgif-5aaa8fdb7fbd4e82-3.gif…]()
+
 # K-Means Clustering App · Εφαρμογή συσταδοποίησης με KMeans
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://k-meansapp.streamlit.app)
