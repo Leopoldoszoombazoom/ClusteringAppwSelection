@@ -129,9 +129,12 @@ f3 = st.sidebar.selectbox("Χαρακτηριστικό 3 (z)", [c for c in nume
                           index=0, key=f"{dataset}-f3")
 features = (f1, f2, f3)
 
-palette = st.sidebar.selectbox("Χρώματα (colormap)",
-                               ["tab10", "Set1", "Dark2", "Set2", "Paired", "viridis", "plasma"])
-point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 10, 4)
+# ίδια colormaps με την desktop εφαρμογή, με προεπιλογή το winter
+COLORMAPS = ["winter", "viridis", "plasma", "inferno", "magma", "cividis", "cool", "coolwarm",
+             "Blues", "Greens", "Purples", "Oranges", "Reds", "tab10", "Set1", "Set2", "Dark2",
+             "Paired", "Accent", "brg", "rainbow", "jet", "ocean", "terrain", "gnuplot", "cubehelix"]
+palette = st.sidebar.selectbox("Χρώματα (colormap)", COLORMAPS)
+point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 10, 3)
 seed = st.sidebar.number_input("Random seed", value=0, step=1,
                                help="Ίδιο seed → ίδιο αποτέλεσμα σε κάθε εκτέλεση")
 scale = st.sidebar.checkbox("Κανονικοποίηση (StandardScaler)", value=True,
@@ -156,8 +159,9 @@ c3.metric("Μέγεθος συστάδων", " / ".join(str(s) for s in sizes))
 
 # ___________________ 3D γράφημα: Plotly (γυρίζει με το ποντίκι) με εμφάνιση Matplotlib ___________________
 cmap = plt.get_cmap(palette)
-# ποιοτικά colormaps (tab10, Set1…): ένα χρώμα ανά συστάδα · συνεχή (viridis…): ισαπέχοντα χρώματα
-colors = [to_hex(cmap(i % cmap.N) if cmap.N <= 20 else cmap(i / max(k - 1, 1))) for i in range(k)]
+# όπως το scatter(c=labels) της desktop εφαρμογής: η συστάδα i παίρνει το χρώμα στη θέση i/(k-1)
+# του colormap, δηλαδή η πρώτη την αρχή του, η τελευταία το τέλος του
+colors = [to_hex(cmap(i / max(k - 1, 1))) for i in range(k)]
 hover_extra = [c for c in data.columns if c not in features][:4]   # π.χ. η πραγματική κλάση
 
 fig = go.Figure()
@@ -167,19 +171,17 @@ for i in range(k):
     fig.add_trace(go.Scatter3d(
         x=pts[f1], y=pts[f2], z=pts[f3], mode="markers",
         name=f"Συστάδα {i + 1} ({sizes[i]})",
-        marker=dict(size=point_size, color=colors[i], opacity=0.75, line=dict(width=0)),
+        marker=dict(size=point_size, color=colors[i], opacity=0.7, line=dict(width=0)),
         customdata=pts[hover_extra].to_numpy() if hover_extra else None,
         hovertemplate=f"Συστάδα {i + 1}<br>{f1}=%{{x}}<br>{f2}=%{{y}}<br>{f3}=%{{z}}{extra}<extra></extra>",
     ))
 # κέντρα: μαύρα αστέρια όπως στην desktop εφαρμογή (το Scatter3d δεν έχει σύμβολο αστεριού → κείμενο ★)
 fig.add_trace(go.Scatter3d(
     x=centers[:, 0], y=centers[:, 1], z=centers[:, 2], mode="text", text=["★"] * k,
-    textfont=dict(size=26, color="black"), legendgroup="κέντρα", showlegend=False,
+    textposition="middle center",  # το ★ πάνω στο κέντρο, όχι από πάνω του
+    textfont=dict(size=30, color="black"), legendgroup="κέντρα", showlegend=False,
     hovertemplate=f"κέντρο<br>{f1}=%{{x:.3f}}<br>{f2}=%{{y:.3f}}<br>{f3}=%{{z:.3f}}<extra></extra>",
 ))
-# καταχώρηση υπομνήματος για τα κέντρα (αλλιώς το Plotly δείχνει «Aa» για ίχνος κειμένου)
-fig.add_trace(go.Scatter3d(x=[None], y=[None], z=[None], mode="markers", name="★ Κέντρα",
-                           legendgroup="κέντρα", marker=dict(size=1, opacity=0)))
 
 MPL_FONT = "DejaVu Sans, Verdana, sans-serif"
 axis = dict(backgroundcolor="#f2f2f2", showbackground=True, gridcolor="#d0d0d0",
@@ -187,10 +189,9 @@ axis = dict(backgroundcolor="#f2f2f2", showbackground=True, gridcolor="#d0d0d0",
             tickfont=dict(size=11, color="black"))
 fig.update_layout(
     height=600, paper_bgcolor="white", font=dict(family=MPL_FONT, color="black"),
-    title=dict(text=f"Αριθμός συστάδων: {k}", x=0.5, xanchor="center", font=dict(size=16)),
+    title=dict(text=f"k-means, k = {k}", x=0.5, xanchor="center", font=dict(size=16)),
+    showlegend=False,  # όπως στην desktop εφαρμογή· τα μεγέθη των συστάδων φαίνονται πιο πάνω
     margin=dict(l=0, r=0, t=45, b=0),
-    legend=dict(x=0.01, y=0.98, bgcolor="rgba(255,255,255,0.85)", bordercolor="#cccccc",
-                borderwidth=1, itemsizing="constant", font=dict(size=12)),
     scene=dict(
         xaxis=dict(title=f1, **axis), yaxis=dict(title=f2, **axis), zaxis=dict(title=f3, **axis),
         aspectmode="cube",
@@ -200,7 +201,7 @@ fig.update_layout(
 # τα 2/3 του πλάτους σε υπολογιστή (όχι τεράστιο)· σε κινητό οι στήλες στοιβάζονται → όλο το πλάτος
 chart_col, _ = st.columns([2, 1])
 chart_col.plotly_chart(fig, theme=None, config={"displayModeBar": False, "displaylogo": False})
-chart_col.caption("🖱️ Σύρετε για περιστροφή · ροδέλα για zoom · κλικ στο υπόμνημα για απόκρυψη συστάδας")
+chart_col.caption("🖱️ Σύρετε για περιστροφή · ροδέλα για zoom · ★ = κέντρα των συστάδων")
 
 # ___________________ πίνακας δεδομένων ___________________
 with st.expander("Δεδομένα με τη στήλη cluster", expanded=False):
