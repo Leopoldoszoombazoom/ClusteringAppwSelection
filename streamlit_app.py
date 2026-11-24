@@ -65,11 +65,7 @@ def _breast(f):
 def _ctg(f):
     df = pd.read_excel(f, sheet_name="Data", skiprows=1, engine="xlrd")
     df = df.iloc[:, list(range(0, 21)) + [22]]
-    df = df.drop("Unnamed: 9", axis=1).dropna()
-    # Το Excel έχει δύο φορές τα AC, FM, UC, DL, DS, DP: μία ως πλήθος και μία ανά δευτερόλεπτο.
-    # Το pandas ονομάζει τη δεύτερη «.1» (AC.1, FM.1…). Κρατάμε μόνο την πρώτη, γιατί η δεύτερη
-    # λέει το ίδιο πράγμα και θα έδινε διπλό βάρος σε αυτά τα χαρακτηριστικά.
-    return df.drop(columns=[c for c in df.columns if str(c).endswith(".1")])
+    return df.drop("Unnamed: 9", axis=1).dropna()
 
 
 DATASETS = {
@@ -92,21 +88,10 @@ def load_data(name: str) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner="Συσταδοποίηση…")
-def run_kmeans(name: str, features: tuple, k: int, seed: int, scale: bool):
-    X = load_data(name)[list(features)].to_numpy(dtype=float)
-    if scale:
-        # StandardScaler (με NumPy): κάθε στήλη γίνεται (x - μέσος) / τυπική απόκλιση.
-        # Έτσι όλα τα χαρακτηριστικά έχουν μέσο 0 και διασπορά 1, και κανένα δεν κυριαρχεί
-        # στην απόσταση μόνο και μόνο επειδή έχει μεγάλους αριθμούς (π.χ. τα b, e του CTG).
-        mean = X.mean(axis=0)
-        std = X.std(axis=0)
-        std[std == 0] = 1.0  # σταθερή στήλη (π.χ. DR = 0 παντού): αποφεύγουμε διαίρεση με το 0
-    else:
-        mean, std = np.zeros(X.shape[1]), np.ones(X.shape[1])
-    model = KMeans(n_clusters=k, n_init=10, random_state=seed).fit((X - mean) / std)
-    # τα κέντρα επιστρέφουν στις αρχικές μονάδες, ώστε να ταιριάζουν με τους άξονες του γραφήματος
-    centers = model.cluster_centers_ * std + mean
-    return model.labels_, centers, model.inertia_
+def run_kmeans(name: str, features: tuple, k: int, seed: int):
+    X = load_data(name)[list(features)].to_numpy()
+    model = KMeans(n_clusters=k, n_init=10, random_state=seed).fit(X)
+    return model.labels_, model.cluster_centers_, model.inertia_
 
 
 # ___________________ πλευρική στήλη: επιλογές ___________________
@@ -129,21 +114,14 @@ f3 = st.sidebar.selectbox("Χαρακτηριστικό 3 (z)", [c for c in nume
                           index=0, key=f"{dataset}-f3")
 features = (f1, f2, f3)
 
-# ίδια colormaps με την desktop εφαρμογή, με προεπιλογή το winter
-COLORMAPS = ["winter", "viridis", "plasma", "inferno", "magma", "cividis", "cool", "coolwarm",
-             "Blues", "Greens", "Purples", "Oranges", "Reds", "tab10", "Set1", "Set2", "Dark2",
-             "Paired", "Accent", "brg", "rainbow", "jet", "ocean", "terrain", "gnuplot", "cubehelix"]
-palette = st.sidebar.selectbox("Χρώματα (colormap)", COLORMAPS)
-point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 10, 3)
+palette = st.sidebar.selectbox("Χρώματα (colormap)",
+                               ["tab10", "Set1", "Dark2", "Set2", "Paired", "viridis", "plasma"])
+point_size = st.sidebar.slider("Μέγεθος σημείων", 2, 10, 4)
 seed = st.sidebar.number_input("Random seed", value=0, step=1,
                                help="Ίδιο seed → ίδιο αποτέλεσμα σε κάθε εκτέλεση")
-scale = st.sidebar.checkbox("Κανονικοποίηση (StandardScaler)", value=True,
-                            help="Φέρνει όλα τα χαρακτηριστικά στην ίδια κλίμακα (μέσος 0, "
-                                 "τυπική απόκλιση 1) πριν το KMeans. Χωρίς αυτήν, τα χαρακτηριστικά "
-                                 "με μεγάλες τιμές αποφασίζουν μόνα τους τις συστάδες.")
 
 # ___________________ συσταδοποίηση ___________________
-labels, centers, inertia = run_kmeans(dataset, features, k, int(seed), scale)
+labels, centers, inertia = run_kmeans(dataset, features, k, int(seed))
 result = data.copy()
 result["cluster"] = labels
 
@@ -153,15 +131,13 @@ st.caption(f"**{dataset}** · {len(data):,} γραμμές · {len(numeric_cols)
 sizes = np.bincount(labels, minlength=k)
 c1, c2, c3 = st.columns(3)
 c1.metric("Συστάδες", k)
-c2.metric("Inertia (SSE)", f"{inertia:,.2f}",
-          help="Υπολογίζεται στα κανονικοποιημένα δεδομένα" if scale else "Στις αρχικές μονάδες")
+c2.metric("Inertia (SSE)", f"{inertia:,.2f}")
 c3.metric("Μέγεθος συστάδων", " / ".join(str(s) for s in sizes))
 
 # ___________________ 3D γράφημα: Plotly (γυρίζει με το ποντίκι) με εμφάνιση Matplotlib ___________________
 cmap = plt.get_cmap(palette)
-# όπως το scatter(c=labels) της desktop εφαρμογής: η συστάδα i παίρνει το χρώμα στη θέση i/(k-1)
-# του colormap, δηλαδή η πρώτη την αρχή του, η τελευταία το τέλος του
-colors = [to_hex(cmap(i / max(k - 1, 1))) for i in range(k)]
+# ποιοτικά colormaps (tab10, Set1…): ένα χρώμα ανά συστάδα · συνεχή (viridis…): ισαπέχοντα χρώματα
+colors = [to_hex(cmap(i % cmap.N) if cmap.N <= 20 else cmap(i / max(k - 1, 1))) for i in range(k)]
 hover_extra = [c for c in data.columns if c not in features][:4]   # π.χ. η πραγματική κλάση
 
 fig = go.Figure()
@@ -171,17 +147,19 @@ for i in range(k):
     fig.add_trace(go.Scatter3d(
         x=pts[f1], y=pts[f2], z=pts[f3], mode="markers",
         name=f"Συστάδα {i + 1} ({sizes[i]})",
-        marker=dict(size=point_size, color=colors[i], opacity=0.7, line=dict(width=0)),
+        marker=dict(size=point_size, color=colors[i], opacity=0.75, line=dict(width=0)),
         customdata=pts[hover_extra].to_numpy() if hover_extra else None,
         hovertemplate=f"Συστάδα {i + 1}<br>{f1}=%{{x}}<br>{f2}=%{{y}}<br>{f3}=%{{z}}{extra}<extra></extra>",
     ))
 # κέντρα: μαύρα αστέρια όπως στην desktop εφαρμογή (το Scatter3d δεν έχει σύμβολο αστεριού → κείμενο ★)
 fig.add_trace(go.Scatter3d(
     x=centers[:, 0], y=centers[:, 1], z=centers[:, 2], mode="text", text=["★"] * k,
-    textposition="middle center",  # το ★ πάνω στο κέντρο, όχι από πάνω του
-    textfont=dict(size=30, color="black"), legendgroup="κέντρα", showlegend=False,
+    textfont=dict(size=26, color="black"), legendgroup="κέντρα", showlegend=False,
     hovertemplate=f"κέντρο<br>{f1}=%{{x:.3f}}<br>{f2}=%{{y:.3f}}<br>{f3}=%{{z:.3f}}<extra></extra>",
 ))
+# καταχώρηση υπομνήματος για τα κέντρα (αλλιώς το Plotly δείχνει «Aa» για ίχνος κειμένου)
+fig.add_trace(go.Scatter3d(x=[None], y=[None], z=[None], mode="markers", name="★ Κέντρα",
+                           legendgroup="κέντρα", marker=dict(size=1, opacity=0)))
 
 MPL_FONT = "DejaVu Sans, Verdana, sans-serif"
 axis = dict(backgroundcolor="#f2f2f2", showbackground=True, gridcolor="#d0d0d0",
@@ -189,9 +167,10 @@ axis = dict(backgroundcolor="#f2f2f2", showbackground=True, gridcolor="#d0d0d0",
             tickfont=dict(size=11, color="black"))
 fig.update_layout(
     height=600, paper_bgcolor="white", font=dict(family=MPL_FONT, color="black"),
-    title=dict(text=f"k-means, k = {k}", x=0.5, xanchor="center", font=dict(size=16)),
-    showlegend=False,  # όπως στην desktop εφαρμογή· τα μεγέθη των συστάδων φαίνονται πιο πάνω
+    title=dict(text=f"Αριθμός συστάδων: {k}", x=0.5, xanchor="center", font=dict(size=16)),
     margin=dict(l=0, r=0, t=45, b=0),
+    legend=dict(x=0.01, y=0.98, bgcolor="rgba(255,255,255,0.85)", bordercolor="#cccccc",
+                borderwidth=1, itemsizing="constant", font=dict(size=12)),
     scene=dict(
         xaxis=dict(title=f1, **axis), yaxis=dict(title=f2, **axis), zaxis=dict(title=f3, **axis),
         aspectmode="cube",
@@ -201,10 +180,10 @@ fig.update_layout(
 # τα 2/3 του πλάτους σε υπολογιστή (όχι τεράστιο)· σε κινητό οι στήλες στοιβάζονται → όλο το πλάτος
 chart_col, _ = st.columns([2, 1])
 chart_col.plotly_chart(fig, theme=None, config={"displayModeBar": False, "displaylogo": False})
-chart_col.caption("🖱️ Σύρετε για περιστροφή · ροδέλα για zoom · ★ = κέντρα των συστάδων")
+chart_col.caption("🖱️ Σύρετε για περιστροφή · ροδέλα για zoom · κλικ στο υπόμνημα για απόκρυψη συστάδας")
 
 # ___________________ πίνακας δεδομένων ___________________
 with st.expander("Δεδομένα με τη στήλη cluster", expanded=False):
-    st.dataframe(result, width="stretch", height=350)
+    st.dataframe(result, use_container_width=True, height=350)
     st.download_button("⬇️ Λήψη CSV", result.to_csv(index=False).encode("utf-8"),
                        file_name=f"clusters_{Path(dataset).stem}_k{k}.csv", mime="text/csv")
