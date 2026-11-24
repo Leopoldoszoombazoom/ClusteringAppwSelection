@@ -1,5 +1,6 @@
 
 
+
 ![Uploading ezgif-5aaa8fdb7fbd4e82-3.gif…]()
 # K-Means Clustering App · Εφαρμογή συσταδοποίησης με KMeans
 
@@ -11,6 +12,12 @@ Interactive k-means clustering on 10 real datasets, with a rotatable 3D plot of 
 **▶ Try it online, nothing to install: https://k-meansapp.streamlit.app**
 
 <img width="800" height="943" alt="ezgif-5aaa8fdb7fbd4e82" src="https://github.com/user-attachments/assets/2fdeac0f-c9a3-4027-a210-96b455e5823e" />
+<img width="800" height="894" alt="ezgif-2069627019f19a75" src="https://github.com/user-attachments/assets/5d899996-d1c9-45e9-aa35-8e762499bd00" />
+<img width="800" height="894" alt="ezgif-2664a32026c55119" src="https://github.com/user-attachments/assets/de48096f-2b61-4bc2-a35d-14b3a61159c5" />
+<img width="800" height="894" alt="ezgif-25a439268c981386" src="https://github.com/user-attachments/assets/f2789fe8-667e-4537-8aa3-135716ed7e5e" />
+<img width="800" height="894" alt="ezgif-23af432fa3168403" src="https://github.com/user-attachments/assets/fe491964-1f5a-4183-95e0-b3df5a749b24" />
+<img width="800" height="894" alt="ezgif-2bd672ec0ed4e5cd" src="https://github.com/user-attachments/assets/994f2811-7b03-429e-8688-391ab990df23" />
+<img width="800" height="894" alt="ezgif-2ab0968876b17a25" src="https://github.com/user-attachments/assets/cabcf167-94ec-42a5-acca-44ba88618b73" />
 
 ## Features
 
