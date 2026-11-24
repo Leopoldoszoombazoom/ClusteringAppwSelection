@@ -7,16 +7,17 @@ Interactive k-means clustering on 10 real datasets, with a rotatable 3D plot of 
 
 **▶ Try it online, nothing to install: https://k-meansapp.streamlit.app**
 
-![Screenshot of the web app](docs/screenshot-app.png)
+![Screenshot of the web app](docs/screenshot-app-winter.png)
 
 ## Features
 
 - Pick one of **10 datasets** (see below)
 - Choose the number of clusters **k** (1–10) and any **3 numeric features** as the x / y / z axes
-- **Interactive 3D chart** (Plotly, styled like the Matplotlib desktop app): drag to rotate, scroll to zoom, hover a point to see its values, click the legend to hide a cluster
+- **Interactive 3D chart** (Plotly, styled like the Matplotlib desktop app): drag to rotate, scroll to zoom, hover a point to see its values
 - Cluster **centroids**, cluster sizes and inertia (SSE)
 - Data table with the assigned `cluster` column and **CSV download**
-- Colour palettes, point size, and a random seed for reproducible results
+- **Feature scaling** (StandardScaler, on by default) so features with large values don't dominate the clusters
+- Colour palettes (same as the desktop app, default `winter`), point size, and a random seed for reproducible results
 
 ## Datasets
 
